@@ -44,10 +44,11 @@ def run(
         # 2) Build a clean DataFrame if there are any slots
         if all_slots:
             df = pd.DataFrame(all_slots)
-            # split datetime into separate date/time for readability
             df['date'] = df['datetime'].dt.strftime('%Y-%m-%d')
+            df['day'] = df['datetime'].dt.strftime('%a').str.upper()
             df['time'] = df['datetime'].dt.strftime('%H:%M')
-            df = df[['date', 'court', 'time', 'duration', 'price']]
+            df = df[['date', 'day', 'time', 'court', 'duration']]
+            df = df.drop_duplicates(subset=['date', 'time', 'duration'], keep='first')
 
         # 3) Initial vs subsequent runs
         if initial_run:
@@ -66,8 +67,9 @@ def run(
             if new_slots_found:
                 df_new = pd.DataFrame(new_slots_found)
                 df_new['date'] = df_new['datetime'].dt.strftime('%Y-%m-%d')
+                df_new['day'] = df_new['datetime'].dt.strftime('%a').str.upper()
                 df_new['time'] = df_new['datetime'].dt.strftime('%H:%M')
-                df_new = df_new[['date', 'court', 'time', 'duration', 'price']]
+                df_new = df_new[['date', 'day', 'time', 'court', 'duration']]
 
                 table_new = df_new.to_string(index=False)
                 logger.info("New slots found:\n" + table_new)
