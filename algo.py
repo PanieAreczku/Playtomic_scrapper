@@ -8,10 +8,10 @@ if __name__ == '__main__':
     min_time = dtime(17, 0)
     max_time = dtime(22, 0)
     duration = 90
-    interval = 120  # seconds
+    interval = 600  # seconds
     user_key = os.getenv('PUSHOVER_USER_KEY')
-    notify = False
-    include_weekends = False
+    notify = True
+    include_weekends = True
 
     run(
         days,
