@@ -8,7 +8,7 @@ A Python script that checks for available padel courts via the Playtomic API and
 - Filters by time range and court duration
 - Sends real-time Pushover notifications
 - Automatically filters out blocked courts
-- Periodically scans every 2 minutes to detect new available slots
+- Periodically scans every 10 minutes to detect new available slots
 - Outputs results in a readable table format
 
 ## 🛠️ Installation
