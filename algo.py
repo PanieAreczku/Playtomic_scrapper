@@ -2,12 +2,13 @@
 from datetime import time as dtime
 import os
 from scheduler import run
+from typing import List
 
 if __name__ == '__main__':
     days = 14
     min_time = dtime(17, 0)
     max_time = dtime(22, 0)
-    duration = 90
+    durations = [90, 120]  # Changed from single duration to list of durations
     interval = 600  # seconds
     user_key = os.getenv('PUSHOVER_USER_KEY')
     notify = True
@@ -22,10 +23,10 @@ if __name__ == '__main__':
         days=days,
         min_time=min_time,
         max_time=max_time,
-        duration=duration,
+        durations=durations,  # Changed parameter name from duration to durations
         interval=interval,
         user_key=user_key,
-        email_recipients=email_recipients,  # ← pass them here
+        email_recipients=email_recipients,
         notify=notify,
         include_weekends=include_weekends
     )

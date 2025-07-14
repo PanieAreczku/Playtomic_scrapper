@@ -1,4 +1,3 @@
-# padel_notifier/scheduler.py
 import time
 import logging
 from datetime import timedelta
@@ -7,7 +6,7 @@ from typing import List, Optional
 import pandas as pd
 from availability import AvailabilityScanner
 from notification import PushoverClient
-from email_notifier import EmailNotifier  # ← import your new class
+from email_notifier import EmailNotifier
 from config import TENANT_ID, TIMEZONE
 
 logger = logging.getLogger(__name__)
@@ -17,7 +16,7 @@ def run(
     days: int,
     min_time,
     max_time,
-    duration: int,
+    durations: List[int],  # Changed from duration: int to durations: List[int]
     interval: int,
     user_key: str,
     email_recipients: list[str] | None = None,
@@ -28,24 +27,25 @@ def run(
     dates = scanner.get_date_range(days, include_weekends)
 
     pushover = PushoverClient(user_key)
-    email_notifier = EmailNotifier()  # ← instantiate once
+    email_notifier = EmailNotifier()
     seen = set()
     initial_run = True
 
     while True:
-        all_slots       = []
+        all_slots = []
         new_slots_found = []
 
-        # 1) Fetch and dedupe slots
-        for date in dates:
-            raw   = scanner.fetch(date)
-            slots = scanner.parse_slots(raw, min_time, max_time, duration)
-            for s in slots:
-                key = (date, s['court'], s['datetime'], s['duration'], s['price'])
-                all_slots.append(s)
-                if key not in seen:
-                    seen.add(key)
-                    new_slots_found.append(s)
+        # 1) Fetch and dedupe slots for each duration
+        for duration in durations:
+            for date in dates:
+                raw = scanner.fetch(date)
+                slots = scanner.parse_slots(raw, min_time, max_time, duration)
+                for s in slots:
+                    key = (date, s['court'], s['datetime'], s['duration'], s['price'])
+                    all_slots.append(s)
+                    if key not in seen:
+                        seen.add(key)
+                        new_slots_found.append(s)
 
         # 2) Build a clean DataFrame if there are any slots
         if all_slots:
@@ -54,9 +54,11 @@ def run(
             df['day'] = df['datetime'].dt.strftime('%a').str.upper()
             df['time'] = df['datetime'].dt.strftime('%H:%M')
             df = df[['date', 'day', 'time', 'court', 'duration']].drop_duplicates(
-                subset=['date', 'time', 'duration'],
+                subset=['date', 'time', 'court', 'duration'],  # Added duration to dedupe
                 keep='first'
             )
+            # Sort by date, time and duration
+            df = df.sort_values(['date', 'time', 'duration'])
 
         # 3) Initial vs subsequent runs
         if initial_run:
@@ -68,7 +70,6 @@ def run(
                     message = f"{title}:\n```\n{table}\n```"
                     pushover.send(message)
                     if email_recipients:
-                        # send email too
                         email_notifier.send_email(
                             recipients=email_recipients,
                             subject=title,
@@ -86,6 +87,7 @@ def run(
                 df_new['day'] = df_new['datetime'].dt.strftime('%a').str.upper()
                 df_new['time'] = df_new['datetime'].dt.strftime('%H:%M')
                 df_new = df_new[['date', 'day', 'time', 'court', 'duration']]
+                df_new = df_new.sort_values(['date', 'time', 'duration'])
 
                 table_new = df_new.to_string(index=False)
                 logger.info(f"New slots found:\n{table_new}")
